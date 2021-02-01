@@ -2,6 +2,7 @@ package com.example.myapplication;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
 import android.Manifest;
 import android.content.Context;
@@ -13,11 +14,13 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.CountDownTimer;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -38,6 +41,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -74,13 +78,16 @@ public class MainActivity extends RobotActivity {
     private static String sRoom3;
     private TextView mTvRoom1;
     private TextView mTvPermissionState;
-    private Button mBtnPermission;
+    private Button mBtnPermission, mBtnCamera;
     private static Context context;
     private static String thismap = "map1";
 
     private int day, month, hr, min,PICK_IMAGE_REQUEST = 111,REQUEST_IMAGE_CAPTURE = 1;
-    private String IslamicuUrl, PrayingUrl, FacialUrl, responseResult,selectedImagePath;
+    private String IslamicuUrl, PrayingUrl, FacialUrl, responseResult,selectedImagePath, currentPhotoPath;
+    private static  String facedetect_result = "no face detect";
+    CountDownTimer TimerDetect;
     Bitmap bitmap;
+
 
 
 
@@ -95,15 +102,25 @@ public class MainActivity extends RobotActivity {
         mTvRoom1 = (TextView) findViewById(R.id.TvRoom1);
         counter = milli/countInter;
 
+
         mBtnPermission = (Button) findViewById(R.id.BtnPermission);
+        mBtnCamera = (Button) findViewById(R.id.btnCamera);
 
 
-        IslamicuUrl = "https://zenbo.pythonanywhere.com/api/v1/resources/prayertime?day=" + day + "&month=" +
-                month + "&hour=" + hr + "&minute=" + min + "&country=QA";
+
+
         PrayingUrl = "https://zenbo.pythonanywhere.com/praying_detection";
         FacialUrl = "https://zenbo.pythonanywhere.com/identify_user";
 
         //final Intent intent = new Intent(this, )
+
+        mBtnCamera.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent i = new Intent(MainActivity.this,SurfaceCamActivity.class);
+                startActivity(i);
+            }
+        });
 
         mBtnPermission.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -111,6 +128,8 @@ public class MainActivity extends RobotActivity {
                 requestPermission();
             }
         });
+
+
 
         BtTimerStart.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -132,6 +151,8 @@ public class MainActivity extends RobotActivity {
                         ArrayList<RoomInfo> arrayListRooms = robotAPI.contacts.room.getAllRoomInfo();
                         sRoom1 = arrayListRooms.get(0).keyword;
                         sRoom2 = arrayListRooms.get(1).keyword;
+                       // sRoom3 = arrayListRooms.get(2).keyword;
+                        mTvRoom1.setText(sRoom1+" ; "+sRoom2);
                         //sRoom3 = arrayListRooms.get(2).keyword;
 
                         //TODO: add fetch time and country
@@ -142,6 +163,9 @@ public class MainActivity extends RobotActivity {
                         month = dt.getMonth() + 1;
                         hr = dt.getHours();
                         min = dt.getMinutes();
+
+                        IslamicuUrl = "https://zenbo.pythonanywhere.com/api/v1/resources/prayertime?day=" + day + "&month=" +
+                                month + "&hour=" + hr + "&minute=" + min + "&country=QA";
 
                         IslamicCalendar();
 
@@ -165,13 +189,13 @@ public class MainActivity extends RobotActivity {
                     @Override
                     public void onFinish() {
 
-                        robotAPI.robot.speak("Go To end");
-                        Intent i = new Intent(MainActivity.this,motionControlActivity.class);
+                        //robotAPI.robot.speak("Go To end");
+                        //Intent i = new Intent(MainActivity.this,motionControlActivity.class);
                         //Intent i = new Intent(Submap0_activity.this,Submap1_activity.class);
-                        i.putExtra("sRoom2",sRoom2);
+                        //i.putExtra("sRoom2",sRoom2);
                         //i.putExtra("sRoom3",sRoom3);
-                        i.putExtra("thismap",thismap);
-                        startActivity(i);
+                        //i.putExtra("thismap",thismap);
+                        //startActivity(i);
                     }
                 }.start();
 
@@ -228,13 +252,15 @@ public class MainActivity extends RobotActivity {
         public void onDetectFaceResult(List<DetectFaceResult> resultList) {
             super.onDetectFaceResult(resultList);
 
-            /*Log.d("RobotDevSample", "onDetectFaceResult: " + resultList.get(0));
+            Log.d("RobotDevSample", "onDetectFaceResult: " + resultList.get(0));
 
             //use toast to show detected faces
             facedetect_result = "Face Detected";
+
             String toast_result = "Detect Face";
-            Toast toast = Toast.makeText(context, toast_result, Toast.LENGTH_SHORT);
-            toast.show();*/
+//            Toast toast = Toast.makeText(context, toast_result, Toast.LENGTH_SHORT);
+ //           toast.show();
+
         }
 
         @Override
@@ -343,12 +369,125 @@ public class MainActivity extends RobotActivity {
 
                 if (response.equals("True")) {
                     //mTvRoom1.setText(sRoom1 +" ;"+ sRoom2 );
+                    robotAPI.robot.speak("Going to bedroom");
                     robotAPI.motion.goTo(sRoom1);
+                    thismap = "map 1";
+
+                    new CountDownTimer(60000,1000) {
+
+                        @Override
+                        public void onTick(long millisUntilFinished) {
+
+                        }
+
+                        @Override
+                        public void onFinish() {
+                            //robotAPI.robot.speak("Starting Camera...");
+                            //dispatchTakePictureIntent();
+                            //galleryAddPic();
+                            startDetectFace();
+                            TimerDetect = new CountDownTimer(80000,20000) {
+
+                                @Override
+                                public void onTick(long millisUntilFinished) {
+
+                                    robotAPI.robot.speak("Rotating...");
+                                    robotAPI.motion.moveBody(0,0,90);
+
+                                    if(!facedetect_result.equals("no face detect")){
+                                        robotAPI.robot.speak("Face Found");
+
+                                        TimerDetect.cancel();
+                                        TimerDetect = null;
+                                        robotAPI.robot.speak("Timer Stopped");
+                                        stopDetectFace();
+                                        robotAPI.robot.speak("Face Found");
+                                        Intent i = new Intent(MainActivity.this, SurfaceCamActivity.class);
+                                        startActivity(i);
+                                    }
+                                }
+                                @Override
+                                public void onFinish() {
+
+                                    robotAPI.robot.speak("Timeout");
+                                    stopDetectFace();
+
+                                }
+                            }.start();
+                        }
+                    }.start();
+
+
+
+
+
+                    //Intent i = new Intent(MainActivity.this,motionControlActivity.class);
+                    //Intent i = new Intent(Submap0_activity.this,Submap1_activity.class);
+                    //i.putExtra("sRoom2",sRoom1);
+                    //i.putExtra("sRoom3",sRoom3);
+                    //i.putExtra("thismap",thismap);
+                    //startActivity(i);
                     //TextResponse.setText("Going to bedroom");
 
 
                 } else {
-                    robotAPI.motion.goTo(sRoom2);
+                    robotAPI.robot.speak("Going to living room");
+                    //Intent i = new Intent(MainActivity.this,motionControlActivity.class);
+                    //Intent i = new Intent(Submap0_activity.this,Submap1_activity.class);
+                    //i.putExtra("sRoom2",sRoom2);
+                    //i.putExtra("sRoom3",sRoom3);
+                    //i.putExtra("thismap",thismap);
+                    //startActivity(i);
+                    robotAPI.motion.goTo(sRoom1);
+                    thismap = "map 2";
+                    new CountDownTimer(60000,1000) {
+
+                        @Override
+                        public void onTick(long millisUntilFinished) {
+
+                        }
+
+                        @Override
+                        public void onFinish() {
+                            //robotAPI.robot.speak("Starting Camera...");
+                            //dispatchTakePictureIntent();
+                            //galleryAddPic();
+                            startDetectFace();
+                            TimerDetect = new CountDownTimer(80000,20000) {
+
+                                @Override
+                                public void onTick(long millisUntilFinished) {
+
+                                    robotAPI.robot.speak("Rotating...");
+                                    robotAPI.motion.moveBody(0,0,90);
+
+                                    if(!facedetect_result.equals("no face detect") && TimerDetect != null){
+
+                                        TimerDetect.cancel();
+                                        TimerDetect = null;
+                                        robotAPI.robot.speak("Timer Stopped");
+                                        stopDetectFace();
+                                        robotAPI.robot.speak("Face Found");
+                                        Intent i = new Intent(MainActivity.this, SurfaceCamActivity.class);
+                                        startActivity(i);
+                                    }
+                                }
+                                @Override
+                                public void onFinish() {
+
+                                    robotAPI.robot.speak("Timeout");
+                                    stopDetectFace();
+
+                                }
+                            }.start();
+                        }
+                    }.start();
+
+
+
+
+
+
                     //TextResponse.setText("Going to Living Room");
                 }
             }
@@ -363,6 +502,171 @@ public class MainActivity extends RobotActivity {
         RequestQueue requestQueue = Volley.newRequestQueue(this);
         requestQueue.add(req);
     }
+
+
+    public void FacialRecognition(String postUrl) {
+
+        Log.d("Server", "byte");
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inPreferredConfig = Bitmap.Config.RGB_565;
+        // Read BitMap by file path
+        //Bitmap bitmap = BitmapFactory.decodeFile(, options);
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream);
+        byte[] byteArray = stream.toByteArray();
+
+        RequestBody postBodyImage = new MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart("file", selectedImagePath, RequestBody.create(MediaType.parse("image/*jpg"), byteArray))
+                .build();
+
+        Log.d("path",selectedImagePath);
+
+        //TextView responseText = findViewById(R.id.txFacialResponse);
+        //responseText.setText("Please wait ...");
+
+        postRequest(postUrl, postBodyImage);
+    }
+
+    void postRequest(final String postUrl, RequestBody postBody) {
+
+        final OkHttpClient client = new OkHttpClient();
+
+        final okhttp3.Request request = new okhttp3.Request.Builder()
+                .url(postUrl)
+                .post(postBody)
+                .build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(okhttp3.Call call, IOException e) {
+                // Cancel the post on failure.
+                call.cancel();
+                e.printStackTrace();
+
+
+                // In order to access the TextView inside the UI thread, the code is executed inside runOnUiThread()
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        // robotAPI.robot.speak("Zenbo Cannot Connect to the Server");
+                        //TextView responseText = findViewById(R.id.txFacialResponse);
+                        //responseText.setText("Failed to Connect to Server");
+                    }
+                });
+            }
+
+            @Override
+            public void onResponse(Call call, final okhttp3.Response response) throws IOException {
+                // In order to access the TextView inside the UI thread, the code is executed inside runOnUiThread()
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        //TextView responseText = findViewById(R.id.txFacialResponse);
+                        try {
+
+                            if(postUrl.equals("https://zenbo.pythonanywhere.com/identify_user")){
+                                //robotAPI.robot.speak(response.body().string());
+                                //responseText.setText(response.body().string());
+                                //responseResult = responseText.getText().toString();
+//                                responseResult = response.body().string();
+                                //Log.d("response", responseResult);
+                            }
+                            else{
+                                JSONObject object = new JSONObject(response.body().string());
+                                JSONArray resultArray = object.getJSONArray("result");
+                                for (int i = 0; i < resultArray.length() ; i++) {
+                                    JSONObject resultobject = resultArray.getJSONObject(i);
+                                    robotAPI.robot.speak("result is "+resultobject.getString("label"));
+                                    //responseText.setText(resultobject.getString("label"));
+                                }
+                            }
+
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            }
+        });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            Uri filePath = data.getData();
+
+            try {
+                bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), filePath);
+                selectedImagePath = filePath.toString();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK && data != null && data.getData() != null) {
+            // Bundle extras = data.getExtras();
+            //Bitmap imageBitmap = (Bitmap) extras.get("data");
+            Bitmap imageBitmap = (Bitmap) data.getExtras().get("data");
+            //imageView.setImageBitmap(imageBitmap);
+
+        }
+    }
+
+
+    private void dispatchTakePictureIntent() {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        // Ensure that there's a camera activity to handle the intent
+        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+            // Create the File where the photo should go
+            File photoFile = null;
+            try {
+                photoFile = createImageFile();
+            } catch (IOException ex) {
+                Log.d("photofile",ex.toString());
+            }
+            // Continue only if the File was successfully created
+            if (photoFile != null) {
+                Uri photoURI = FileProvider.getUriForFile(this,
+                        "com.example.android.fileprovider2",
+                        photoFile);
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
+            }
+        }
+    }
+
+    private File createImageFile() throws IOException {
+        // Create an image file name
+       // String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+       // String imageFileName = "JPEG_" + timeStamp + "_";
+        String imageFileName = "FaceImage";
+        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+                imageFileName,  /* prefix */
+                ".jpg",         /* suffix */
+                storageDir      /* directory */
+        );
+
+        // Save a file: path for use with ACTION_VIEW intents
+        currentPhotoPath = image.getAbsolutePath();
+        Log.d("file",currentPhotoPath);
+        return image;
+    }
+
+    private void galleryAddPic() {
+        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        File f = new File(currentPhotoPath);
+        Uri contentUri = Uri.fromFile(f);
+        mediaScanIntent.setData(contentUri);
+        this.sendBroadcast(mediaScanIntent);
+    }
+
+
 
 
 }
