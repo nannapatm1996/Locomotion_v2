@@ -3,4 +3,7 @@
     <string name="permission_granted">Status: permission is already granted! Go to next step!</string>
     <string name="permission_not_granted">Status: permission not granted!</string>
     <string name="first_room_info">No room info</string>
+    <string name="permission_required">Permission is required for this application.</string>
+    <string name="camera_orientation_relative">Camera orientation relative to screen canvas: %d.</string>
+    <string name="initializing_size">Initializing at size %dx%d.</string>
 </resources>

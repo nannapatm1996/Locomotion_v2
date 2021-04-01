@@ -5,6 +5,7 @@
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-feature android:name="android.hardware.camera.autofocus" />
 
     <uses-feature
         android:name="android.hardware.camera"
@@ -27,13 +28,18 @@
         <activity android:name=".bedroomActivity" />
         <activity android:name=".livingRoomActivity" />
         <activity android:name=".motionControlActivity" />
+        <activity android:name=".MainActivity_pray"/>
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
         </activity>
+        <activity
+            android:name="com.example.myapplication.ObjectDetectionActivity"
+            android:screenOrientation="landscape"/>
 
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -167,7 +167,8 @@ public class MainActivity extends RobotActivity {
                         IslamicuUrl = "https://zenbo.pythonanywhere.com/api/v1/resources/prayertime?day=" + day + "&month=" +
                                 month + "&hour=" + hr + "&minute=" + min + "&country=QA";
 
-                        IslamicCalendar();
+                        //IslamicCalendar();
+                        Loco();
 
                         //mTvRoom1.setText(sRoom1 +" ;"+ sRoom2 );
 
@@ -366,6 +367,7 @@ public class MainActivity extends RobotActivity {
             public void onResponse(String response) {
 
                 Log.d("Response", response);
+                response = "False";
 
                 if (response.equals("True")) {
                     //mTvRoom1.setText(sRoom1 +" ;"+ sRoom2 );
@@ -664,6 +666,59 @@ public class MainActivity extends RobotActivity {
         Uri contentUri = Uri.fromFile(f);
         mediaScanIntent.setData(contentUri);
         this.sendBroadcast(mediaScanIntent);
+    }
+
+    private void Loco(){
+        robotAPI.robot.speak("Going to bedroom");
+        //robotAPI.motion.goTo(sRoom1);
+        thismap = "map 1";
+
+        new CountDownTimer(4000,1000) {
+
+            @Override
+            public void onTick(long millisUntilFinished) {
+
+            }
+
+            @Override
+            public void onFinish() {
+                //robotAPI.robot.speak("Starting Camera...");
+                //dispatchTakePictureIntent();
+                //galleryAddPic();
+                startDetectFace();
+                TimerDetect = new CountDownTimer(40000,10000) {
+
+                    @Override
+                    public void onTick(long millisUntilFinished) {
+
+                        if(!facedetect_result.equals("no face detect")){
+                            robotAPI.robot.speak("Face Found");
+                            TimerDetect.cancel();
+                            TimerDetect = null;
+                            robotAPI.robot.speak("Timer Stopped");
+                            stopDetectFace();
+                            robotAPI.robot.speak("Face Found");
+                            Intent i = new Intent(MainActivity.this, SurfaceCamActivity.class);
+                            startActivity(i);
+                        }else{
+                            robotAPI.robot.speak("Face Not Found");
+                            //robotAPI.robot.speak("Rotating...");
+                            //robotAPI.motion.moveBody(0,0,90);
+                        }
+                    }
+                    @Override
+                    public void onFinish() {
+
+                        robotAPI.robot.speak("Timeout");
+                        stopDetectFace();
+
+                    }
+                }.start();
+            }
+        }.start();
+
+
+
     }
 
 
